@@ -22,15 +22,6 @@ export class y_bengali_masters extends Document {
     additional?: Record<string, any>; // Allows any additional fields in 'details'
   };
 
-  @Prop({ type: [String], default: [] })
-  m: string[];
-
-  @Prop({ type: [String], default: [] })
-  noun: string[];
-
-  @Prop({ type: [String], default: [] })
-  verb: string[];
-
   @Prop()
   mean: string;
 

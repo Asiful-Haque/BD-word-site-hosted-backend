@@ -8,10 +8,12 @@ export class meaning2Controller {
   async getcontent(
     @Param('language') language: string,
     @Param('word') word: string,
-  ): Promise<{
-    mean: string;
-  }> {
-    const mean = await this.meaning2Service.getMean(language, word);
-    return { mean };
+  ): Promise<any> {
+    const result = await this.meaning2Service.getMean(language, word);
+    const result_secondary = await this.meaning2Service.getMeanSecondary(
+      language,
+      word,
+    );
+    return { result, result_secondary };
   }
 }

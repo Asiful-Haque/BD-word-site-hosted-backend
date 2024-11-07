@@ -10,7 +10,7 @@ export class meaning2Service {
     private readonly meaning2Model: Model<y_bengali_masters>,
   ) {}
 
-  async getMean(language: string, word: string): Promise<string> {
+  async getMean(language: string, word: string): Promise<any> {
     const result = await this.meaning2Model.findOne({ word }).exec();
 
     if (!result) {
@@ -21,6 +21,10 @@ export class meaning2Service {
     if (!result.mean) {
       throw new Error('Mean property is missing');
     }
-    return result.mean;
+    return result;
   }
+
+  async getMeanSecondary(language: string, word: string) {
+    return "Hi asif"
+}
 }
