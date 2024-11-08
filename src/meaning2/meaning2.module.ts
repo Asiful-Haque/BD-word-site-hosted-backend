@@ -6,11 +6,16 @@ import {
   y_bengali_masters,
   meaning2Schema,
 } from 'src/schemas/meaningInitial.schema';
+import {
+  meaning2SchemaSecondary,
+  v3_word_phrase_,
+} from 'src/schemas/meaningSecondary.schema';
 
 @Module({
   imports: [
     MongooseModule.forFeature([
       { name: y_bengali_masters.name, schema: meaning2Schema },
+      { name: v3_word_phrase_.name, schema: meaning2SchemaSecondary },
     ]),
   ],
   controllers: [meaning2Controller],
