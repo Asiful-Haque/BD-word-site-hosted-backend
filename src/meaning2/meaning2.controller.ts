@@ -14,6 +14,7 @@ export class meaning2Controller {
       language,
       word,
     );
-    return { result, result_secondary };
+    const ss_result = await this.meaning2Service.getSsInformation(word);
+    return { result, result_secondary, ss_result };
   }
 }
