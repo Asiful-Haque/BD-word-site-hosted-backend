@@ -75,9 +75,9 @@ export class meaning2Service {
       },
     ]);
 
-    if (!results.length) {
-      throw new Error('No data found for the given word');
-    }
+    // if (!results.length) {
+    //   throw new Error('No data found for the given word');
+    // }
 
     return results;
   }
