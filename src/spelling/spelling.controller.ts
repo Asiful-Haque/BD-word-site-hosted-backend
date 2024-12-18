@@ -1,7 +1,7 @@
 import { Controller, Get, Query } from '@nestjs/common';
 import { spellingService } from './spelling.service';
 
-@Controller()
+@Controller('api')
 export class spellingController {
   constructor(private readonly spellingService: spellingService) {}
 

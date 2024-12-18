@@ -19,66 +19,92 @@ export class meaning2Service {
     private readonly dict_word_listModel: Model<dict_word_lists>,
   ) {}
 
-  async getMean(language: string, word: string): Promise<any> {
-    const result = await this.meaning2Model.findOne({ word }).exec();
+  async getAggregatedMeanData(language: string, word: string): Promise<any> {
+    const aggregationResult = await this.meaning2Model.aggregate([
+      // Step 1: Match the word
+      { $match: { word } },
 
-    if (!result) {
-      throw new Error('Word not found');
-    }
-    if (!result.mean) {
-      throw new Error('Mean property is missing');
-    }
-    return result;
-  }
-
-  async getMeanSecondary(language: string, word: string): Promise<any> {
-    // const matchStage = await this.meaning2ModelSecondary.aggregate([
-    //   { $match: { word: { $regex: `^${word}$`, $options: 'i' } } },
-    // ]);
-    // console.log('Match Stage Results:', matchStage);
-
-    const result = await this.meaning2ModelSecondary.findOne({ word }).exec();
-
-    if (!result) {
-      throw new Error('Data not came from the backend');
-    }
-    return result;
-  }
-
-  async getSsInformation(word: string) {
-    const results = await this.dict_word_listModel.aggregate([
-      {
-        $match: { word }, // Match the specific word in `dict_word_list`
-      },
+      // Step 2: Lookup for secondary meaning
       {
         $lookup: {
-          from: 'subtitles', // Collection name for `subtitle`
-          localField: 'sid', // Field in `dict_word_list` that references `subtitle`
-          foreignField: 'id', // Field in `subtitle` that `sid` corresponds to
-          as: 'subtitleInfo', // Output field for joined data
+          from: 'v3_word_phrase_',
+          localField: 'word',
+          foreignField: 'word',
+          as: 'meaningSecondaryInfo',
         },
       },
+
+      // Step 3: Lookup for `dictInfo` and randomize
       {
-        $unwind: '$subtitleInfo', // Flatten the array of `subtitleInfo` documents
+        $lookup: {
+          from: 'dict_word_lists',
+          let: { wordValue: '$word' },
+          pipeline: [
+            { $match: { $expr: { $eq: ['$word', '$$wordValue'] } } },
+            { $addFields: { randomValue: { $rand: {} } } },
+            { $sort: { randomValue: 1 } },
+            { $limit: 5 },
+          ],
+          as: 'dictInfo',
+        },
       },
+
+      // Step 4: Lookup for `subtitles` using extracted `sid`
+      {
+        $lookup: {
+          from: 'subtitles',
+          let: { sidList: '$dictInfo.sid' },
+          pipeline: [
+            { $match: { $expr: { $in: ['$id', '$$sidList'] } } },
+            { $project: { _id: 0, end_time: 1, text: 1, mname: 1, mtitle: 1 } },
+          ],
+          as: 'subtitleInfo',
+        },
+      },
+
+      // Step 5: Group results
+      {
+        $group: {
+          _id: '$_id',
+          word: { $first: '$word' },
+          meaningPrimaryInfo: {
+            $first: {
+              word: '$word',
+              details: '$details',
+              mean: '$mean',
+              nex: '$nex',
+              prev: '$prev',
+              height: '$height',
+              width: '$width',
+            },
+          },
+          meaningSecondaryInfo: {
+            $first: { $arrayElemAt: ['$meaningSecondaryInfo', 0] },
+          },
+          subtitleInfo: { $first: '$subtitleInfo' },
+        },
+      },
+
+      // Step 6: Project the final result
       {
         $project: {
-          word: 1, // Include `word` from `dict_word_list`
-          'subtitleInfo.end_time': 1, // Include `end_time` from `subtitle`
-          'subtitleInfo.text': 1, // Include `text` from `subtitle`
-          'subtitleInfo.mname': 1, // Include `mname` from `subtitle`
-          'subtitleInfo.mtitle': 1, // Include `mtitle` from `subtitle`
+          _id: 0,
+          word: 1,
+          meaningPrimaryInfo: 1,
+          meaningSecondaryInfo: 1,
+          subtitleInfo: 1,
         },
       },
-      {
-        $sample: { size: 5 }, // Randomize and limit the results to 5
-      },
+
+      // Step 7: Limit to 1 result
+      { $limit: 1 },
     ]);
 
-    // if (!results.length) {
-    //   throw new Error('No data found for the given word');
-    // }
+    if (!aggregationResult || aggregationResult.length === 0) {
+      throw new Error('No data found for the given word');
+    }
 
-    return results;
+    // Wrap the result in { result: ... }
+    return aggregationResult[0];
   }
 }
